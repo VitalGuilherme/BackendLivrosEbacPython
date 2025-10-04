@@ -37,26 +37,20 @@ def get_livro():
         return {"Livro": meu_livro}
     
 @app.post("/adicionar")
-def post_livro(id_livro: int, nome_livro: str, autor_livro: str, ano_livro: int):
+def post_livro(id_livro: int, livro: Livros):
     if id_livro in meu_livro:
         raise HTTPException(status_code=400, detail="Esse livro já existe")
     else:
-        meu_livro[id_livro] = {"nome_livro": nome_livro, "autor_livro": autor_livro, "ano_livro": ano_livro}
+        meu_livro[id_livro] = livro.model_dump()
         return {"message": "O livro foi criado com sucesso!"}
 
 @app.put("/atualizar/{id_livro}")
-def put_livro(id_livro: int, nome_livro: str, autor_livro: str, ano_livro: int):
+def put_livro(id_livro: int, livro: Livros):
     livro = meu_livro.get(id_livro)
     if not livro:
         raise HTTPException(status_code=404, detail="Esse livro não foi encontrado.")
     else:
-        if nome_livro:
-            livro["nome_livro"] = nome_livro
-        if autor_livro:
-            livro["autor_livro"] = autor_livro
-        if ano_livro:
-            livro["ano_livro"] = ano_livro
-        return {"message": "As informações do livro foram atualizadas com sucesso!"}
+        livro[id_livro] = Livros.model_dump()
     
 @app.delete("/delete/{id_livro}")
 def delete_livro(id_livro: int):
