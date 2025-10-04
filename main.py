@@ -16,11 +16,19 @@
 # Para rodar o FastAPI no terminal: fastapi dev (e o nome do arquivo .py).
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
 
 meu_livro = {}
 
+class Livros(BaseModel):
+    nome_livro = str
+    autor_livro = str
+    ano_livro = int
+
+    
 @app.get("/livro")
 def get_livro():
     if not meu_livro:
