@@ -24,9 +24,9 @@ app = FastAPI()
 meu_livro = {}
 
 class Livros(BaseModel):
-    nome_livro = str
-    autor_livro = str
-    ano_livro = int
+    nome_livro: str
+    autor_livro: str
+    ano_livro: int
 
     
 @app.get("/livro")
@@ -46,11 +46,12 @@ def post_livro(id_livro: int, livro: Livros):
 
 @app.put("/atualizar/{id_livro}")
 def put_livro(id_livro: int, livro: Livros):
-    livro = meu_livro.get(id_livro)
-    if not livro:
+    livro_atu = meu_livro.get(id_livro)
+    if not livro_atu:
         raise HTTPException(status_code=404, detail="Esse livro não foi encontrado.")
     else:
-        livro[id_livro] = Livros.model_dump()
+        meu_livro[id_livro] = livro.model_dump()
+        return {"message": "As informações do livro foram atualizadas com sucesso!"}
     
 @app.delete("/delete/{id_livro}")
 def delete_livro(id_livro: int):
