@@ -119,6 +119,7 @@ def post_livro(livro: Livros, db: Session = Depends(sessao_db) ,credentials: HTT
     
     novo_livro = LivrosDB(nome_livro=livro.nome_livro, autor_livro=livro.autor_livro, ano_livro=livro.ano_livro)
     db.add(novo_livro)
+    
     db.commit()
     db.refresh(novo_livro)
 

@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+
+  app:
+    build: .
+    container_name: livros-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONNUNBUFFERED=1
+    comand: [ "poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
+
+  # Passo 1
+  # Instalação do podman, no Linux, Mac e Windows.
+  # Linux -> sudo apt update && sudo apt install -y podman
+  # Mac -> brew install podman
+  # Windows - > choco install podman-cli
+
+  # Passo 2
+  # pip install podman-compose
+  
