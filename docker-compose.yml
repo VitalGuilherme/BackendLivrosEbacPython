@@ -9,9 +9,19 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-    environment:
-      - PYTHONNUNBUFFERED=1
+    env_file:
+      - .env
     comand: [ "poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
+
+  # Escalabilidade de containers.
+  # Comando para replica de containers.
+  # deploy:
+  #   replicas: 5 (Mensagem para o Docker para replicar o "Dockerfile" em 5x caso tenha um gargalo de usuarios na API).
+  #   restart_policy:
+  #     condition: on-failure
+  #
+  #
+  #
 
   # Passo 1
   # Instalação do podman, no Linux, Mac e Windows.
