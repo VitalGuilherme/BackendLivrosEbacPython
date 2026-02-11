@@ -25,13 +25,19 @@ from typing import Optional
 import secrets
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
+import asyncio
+
+load_dotenv()
+
 #Variaveis de ambiente
 #DATABASE_URL = "sqlite:///./livros.db"
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -87,8 +93,35 @@ def autenticar_meu_usuario(credentials: HTTPBasicCredentials = Depends(security)
             headers={"WWW-Autheticate": "Basic"}
         )
     
+async def chamadas_externas_1():
+    await asyncio.sleep(2)
+    return "https://pokeapi.co/api/v2/ability/1/"
+    
+async def chamadas_externas_2():
+    await asyncio.sleep(2)
+    return "Resultado Chamada externa 2"
+
+async def chamadas_externas_3():
+    await asyncio.sleep(2)
+    return "Resultado Chamada externa 3"
+
+@app.get("/chamadas-externas")
+async def chamadas_externas():
+    tarefa1 = asyncio.create_task(chamadas_externas_1())
+    tarefa2 = asyncio.create_task(chamadas_externas_2())
+    tarefa3 = asyncio.create_task(chamadas_externas_3())
+
+    resultado1 = await tarefa1
+    resultado2 = await tarefa2
+    resultado3 = await tarefa3
+
+    return {
+        "mensagem": "Todas as chamadas nas API's foram concluidas com sucesso",
+        "resultado": [resultado1, resultado2, resultado3]
+    }
+    
 @app.get("/livro")
-def get_livro(page: int = 1, limit: int = 10, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+async def get_livro(page: int = 1, limit: int = 10, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="Page ou limit inválido")
     
@@ -117,7 +150,7 @@ def get_livro(page: int = 1, limit: int = 10, db: Session = Depends(sessao_db) ,
     }
     
 @app.post("/adicionar")
-def post_livro(livro: Livros, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+async def post_livro(livro: Livros, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
     db_livro = db.query(LivrosDB).filter(LivrosDB.nome_livro == livro.nome_livro, LivrosDB.autor_livro == livro.autor_livro).first()
     if db_livro:
         raise HTTPException(status_code=400, detail="Esse livro já existe dentro do banco de dados!")
@@ -138,7 +171,7 @@ def post_livro(livro: Livros, db: Session = Depends(sessao_db) ,credentials: HTT
 
 
 @app.put("/atualizar/{id_livro}")
-def put_livro(id_livro: int, livro: Livros, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+async def put_livro(id_livro: int, livro: Livros, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
     db_livro = db.query(LivrosDB).filter(LivrosDB.id == id_livro). first()
     if not db_livro:
         raise HTTPException(status_code=400, detail="Este livro não foi encontrado no banco de dados!")
@@ -160,7 +193,7 @@ def put_livro(id_livro: int, livro: Livros, db: Session = Depends(sessao_db) ,cr
     #    return {"message": "As informações do livro foram atualizadas com sucesso!"}
     
 @app.delete("/delete/{id_livro}")
-def delete_livro(id_livro: int, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+async def delete_livro(id_livro: int, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
     db_livro = db.query(LivrosDB).filter(LivrosDB.id == id_livro). first()
     if not db_livro:
         raise HTTPException(status_code=404, detail="Este livro não foi encontrado no banco de dados!")
