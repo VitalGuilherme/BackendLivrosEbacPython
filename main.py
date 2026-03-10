@@ -24,6 +24,8 @@ from pydantic import BaseModel
 from typing import Optional
 import secrets
 import os
+import redis
+import json
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String
@@ -41,6 +43,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+redis_client = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
 
 def sessao_db():
     db = SessionLocal()
@@ -82,6 +86,20 @@ class Livros(BaseModel):
 
 Base.metadata.create_all(bind=engine)
 
+async def salvar_livros_redis(id_livro: int, livro: Livros):
+    #redis_client.set(f"livro:{id_livro}", json.dumps(livro.model_dump()))
+    redis_client.setex(f"livro:{id_livro}",30, json.dumps())
+    chave_pag = redis_client.keys("livro:page=*")
+    if chave_pag:
+        redis_client.delete(*chave_pag)
+
+
+async def deletar_livros_redis(id_livro: int):
+    redis_client.delete(f"livro:{id_livro}")
+    chave_pag = redis_client.keys("livro:page=*")
+    if chave_pag:
+        redis_client.delete(*chave_pag)
+
 def autenticar_meu_usuario(credentials: HTTPBasicCredentials = Depends(security)):
     is_username_correct = secrets.compare_digest(credentials.username, MEU_USUARIO)
     is_password_correct = secrets.compare_digest(credentials.password, MINHA_SENHA)
@@ -119,17 +137,81 @@ async def chamadas_externas():
         "mensagem": "Todas as chamadas nas API's foram concluidas com sucesso",
         "resultado": [resultado1, resultado2, resultado3]
     }
-    
+
+@app.get("/debug/redis")
+def ver_livros_redis():
+    chaves = redis_client.keys("livro:*")
+    livros = []
+
+    for chave in chaves:
+        valor = redis_client.get(chave)
+        ttl = redis_client.ttl(chave)
+
+        livros.append({"chave": chave, "valor": json.loads(valor), "ttl": ttl})
+
+    return livros
+#def ver_livros_redis():
+#    chaves = redis_client.keys("livro:*")
+#    livros = []
+
+#   for chave in chaves:
+#        valor = redis_client.get(chave)
+#        livros.append({"chave": chave, "valor": json.loads(valor)})
+
+#    return livros
+
 @app.get("/livro")
-async def get_livro(page: int = 1, limit: int = 10, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+def get_livro(
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(sessao_db),
+    credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)
+):
     if page < 1 or limit < 1:
-        raise HTTPException(status_code=400, detail="Page ou limit inválido")
+        raise HTTPException(status_code=400, detail="Page ou limit estão com valores inválidos.")
+    
+    cache_key = f"livro:page={page}&limit={limit}"
+    cached = redis_client.get(cache_key)
+
+    if cached:
+        return json.loads(cached)
     
     livros = db.query(LivrosDB).offset((page - 1) * limit).limit(limit).all()
-    
+
     if not livros:
-        return {"message": "Não existe nenhum livro."}
+        return {"message": "Não existe livro nenhum."}
     
+    total_livros = db.query(LivrosDB).count()
+
+    resposta = {
+        "page": page,
+        "limit": limit,
+        "total": total_livros,
+        "livro": [
+            {
+                "id": livro.id,
+                "nome_livro": livro.nome_livro,
+                "autor_livro": livro.autor_livro,
+                "ano_livro": livro.ano_livro
+            } for livro in livros
+        ]
+    }
+
+    redis_client.setex(cache_key, 30, json.dumps(resposta))
+    
+    return resposta
+    
+    
+#async def get_livro(page: int = 1, limit: int = 10, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+#    if page < 1 or limit < 1:
+#        raise HTTPException(status_code=400, detail="Page ou limit inválido")
+    
+#    livros = db.query(LivrosDB).offset((page - 1) * limit).limit(limit).all()
+    
+#    if not livros:
+#        return {"message": "Não existe nenhum livro."}
+
+# =============================================================================================================================   
     #livros_ordenados = sorted(meu_livro.items(), key=lambda x: x[0])
 
     #start = (page - 1) * limit
@@ -140,14 +222,16 @@ async def get_livro(page: int = 1, limit: int = 10, db: Session = Depends(sessao
     #    for id_livro, livro_data in livros_ordenados[start:end]
     #]
 
-    total_livros = db.query(LivrosDB).count()
+# ===============================================================================================================================
 
-    return {
-        "page": page,
-        "limit": limit,
-        "total": (total_livros),
-        "livros": [{"id": livro.id, "nome_livro": livro.nome_livro, "autor_livro": livro.autor_livro, "ano_livro": livro.ano_livro} for livro in livros]
-    }
+#    total_livros = db.query(LivrosDB).count()
+
+#    return {
+#        "page": page,
+#        "limit": limit,
+#        "total": (total_livros),
+#        "livros": [{"id": livro.id, "nome_livro": livro.nome_livro, "autor_livro": livro.autor_livro, "ano_livro": livro.ano_livro} for livro in livros]
+#    }
     
 @app.post("/adicionar")
 async def post_livro(livro: Livros, db: Session = Depends(sessao_db) ,credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
@@ -160,6 +244,8 @@ async def post_livro(livro: Livros, db: Session = Depends(sessao_db) ,credential
     
     db.commit()
     db.refresh(novo_livro)
+
+    salvar_livros_redis(novo_livro.id, livro)
 
     return{"message": "Livro criado com sucesso"}
 
@@ -183,6 +269,8 @@ async def put_livro(id_livro: int, livro: Livros, db: Session = Depends(sessao_d
     db.commit()
     db.refresh(db_livro)
 
+    salvar_livros_redis(db_livro.id, livro)
+
     return {"message": "Livro atualizado com sucesso!"}
 
     #livro_atu = meu_livro.get(id_livro)
@@ -200,6 +288,8 @@ async def delete_livro(id_livro: int, db: Session = Depends(sessao_db) ,credenti
     
     db.delete(db_livro)
     db.commit()
+
+    deletar_livros_redis(id_livro)
 
     return{"message": "Seu livro foi deletado com sucesso!"}
 
