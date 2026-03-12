@@ -44,7 +44,7 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-redis_client = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 def sessao_db():
     db = SessionLocal()
@@ -86,19 +86,19 @@ class Livros(BaseModel):
 
 Base.metadata.create_all(bind=engine)
 
-async def salvar_livros_redis(id_livro: int, livro: Livros):
-    #redis_client.set(f"livro:{id_livro}", json.dumps(livro.model_dump()))
-    redis_client.setex(f"livro:{id_livro}",30, json.dumps())
-    chave_pag = redis_client.keys("livro:page=*")
-    if chave_pag:
-        redis_client.delete(*chave_pag)
+def salvar_livros_redis(id_livro: int, livro: Livros):
+    redis_client.set(f"livro:{id_livro}", json.dumps(livro.model_dump()))
+    #redis_client.setex(f"livro:{id_livro}",30, json.dumps())
+    #chave_pag = redis_client.keys("livro:page=*")
+    #if chave_pag:
+    #    redis_client.delete(*chave_pag)
 
 
-async def deletar_livros_redis(id_livro: int):
+def deletar_livros_redis(id_livro: int):
     redis_client.delete(f"livro:{id_livro}")
-    chave_pag = redis_client.keys("livro:page=*")
-    if chave_pag:
-        redis_client.delete(*chave_pag)
+    #chave_pag = redis_client.keys("livro:page=*")
+    #if chave_pag:
+    #    redis_client.delete(*chave_pag)
 
 def autenticar_meu_usuario(credentials: HTTPBasicCredentials = Depends(security)):
     is_username_correct = secrets.compare_digest(credentials.username, MEU_USUARIO)
@@ -150,18 +150,11 @@ def ver_livros_redis():
         livros.append({"chave": chave, "valor": json.loads(valor), "ttl": ttl})
 
     return livros
-#def ver_livros_redis():
-#    chaves = redis_client.keys("livro:*")
-#    livros = []
 
-#   for chave in chaves:
-#        valor = redis_client.get(chave)
-#        livros.append({"chave": chave, "valor": json.loads(valor)})
 
-#    return livros
 
-@app.get("/livro")
-def get_livro(
+@app.get("/livros")
+def get_livros(
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(sessao_db),
@@ -170,7 +163,7 @@ def get_livro(
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="Page ou limit estão com valores inválidos.")
     
-    cache_key = f"livro:page={page}&limit={limit}"
+    cache_key = f"livros:page={page}&limit={limit}"
     cached = redis_client.get(cache_key)
 
     if cached:
@@ -187,7 +180,7 @@ def get_livro(
         "page": page,
         "limit": limit,
         "total": total_livros,
-        "livro": [
+        "livros": [
             {
                 "id": livro.id,
                 "nome_livro": livro.nome_livro,

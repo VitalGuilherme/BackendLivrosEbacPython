@@ -11,12 +11,12 @@ services:
       - .env
     command: [ "poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
 
-  redis:
-    image: redis:latest
-    container_name: redis_cache
-    ports:
-    - "6379:6379"
-    restart: always    
+  #redis:
+  #  image: redis:latest
+  #  container_name: redis_cache
+  #  ports:
+  #  - "6379:6379"
+  #  restart: always    
 
   # Escalabilidade de containers.
   # Comando para replica de containers.

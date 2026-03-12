@@ -20,7 +20,7 @@
 # podman machine init 
 # podman machine start
 # podman-compose build
-# podman-compose -d
+# podman-compose up -d
 
 ## Jornada de Infraestrutura e Desafios
 
