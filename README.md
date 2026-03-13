@@ -6,7 +6,7 @@
 * **Banco de Dados:** SQLAlchemy com SQLite (via aiosqlite para suporte async)
 * **Cache:** Redis (Implementação de padrão Cache-Aside para otimização de consultas)
 * **Gerenciamento de Dependências:** Poetry
-* **Infraestrutura:** Docker & Docker Compose (Substituindo a implementação inicial em Podman para melhor integração com Redis no Windows)
+* **Infraestrutura:** Podman & Podman Compose 
 
  Utiliza o FastAPI como framework base e o sqlalchemy e aiosqlite para o banco de dados.
 
@@ -22,9 +22,6 @@
 # podman-compose build
 # podman-compose up -d
 
-## Jornada de Infraestrutura e Desafios
-
-Originalmente, o projeto foi concebido utilizando o **Podman** como gerenciador de containers. No entanto, durante a evolução para a fase de caching com **Redis**, migramos para o **Docker Desktop** para garantir uma integração mais fluida e estável com o ecossistema Windows via **WSL 2**.
 
 ### O processo de configuração incluiu:
 1.  **Ativação de Virtualização:** Configuração de BIOS e recursos do Windows.
@@ -33,8 +30,6 @@ Originalmente, o projeto foi concebido utilizando o **Podman** como gerenciador 
 
 ## Como Executar o Projeto
 
-### Pré-requisitos
-* Docker Desktop instalado e rodando (com suporte a WSL 2).
 
 ### Passo a Passo
 1.  **Clone o repositório e acesse a pasta:**
