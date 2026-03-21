@@ -7,7 +7,7 @@
 * **Cache:** Redis (Implementação de padrão Cache-Aside para otimização de consultas)
 * **Gerenciamento de Dependências:** Poetry
 * **Infraestrutura:** Podman & Podman Compose 
-
+* **Sistema de filas:** Celery 
  Utiliza o FastAPI como framework base e o sqlalchemy e aiosqlite para o banco de dados.
 
  O Poetry instala gerencia as dependências do projeto.
@@ -39,7 +39,7 @@
 
 2.  **Suba os containers (API + Redis):**
     ```bash
-    docker-compose up --build
+    podman-compose up --build
     ```
 
 3.  **Acesse a documentação automática:**
