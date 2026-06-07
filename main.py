@@ -30,6 +30,7 @@ from fastapi import BackgroundTasks
 from tasks import fatorial, somar
 from celery_app import celery_app
 from celery.result import AsyncResult
+from kafka_producer import enviar_evento
 
 
 from dotenv import load_dotenv
@@ -147,6 +148,10 @@ async def chamadas_externas():
         "resultado": [resultado1, resultado2, resultado3]
     }
 
+@app.get("/")
+def hello_world():
+    return {"Hello": "World!"}
+
 @app.post("/calcular/somar")
 def calcular_soma(a: int, b: int):
     tarefa = somar.delay(a,b)
@@ -171,7 +176,7 @@ def calcular_fatorial(n: int):
 
 @app.get("/tarefas/recentes")
 def listar_tarefas_recentes():
-    ids = redis_client.lrange("tarefas.ids", 0, -1)
+    ids = redis_client.lrange("tarefas_ids", 0, -1)
     tarefas = []
 
     for task_id in ids:
@@ -291,6 +296,11 @@ async def post_livro(livro: Livros, db: Session = Depends(sessao_db) ,credential
     db.refresh(novo_livro)
 
     await salvar_livros_redis(novo_livro.id, livro)
+
+    enviar_evento("livros_eventos", {
+        "acao": "criar",
+        "livro": livro.model_dump()
+    })
 
     return{"message": "Livro criado com sucesso"}
 
