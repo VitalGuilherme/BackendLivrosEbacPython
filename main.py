@@ -35,7 +35,7 @@ from kafka_producer import enviar_evento
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
 import asyncio
@@ -159,7 +159,7 @@ def calcular_soma(a: int, b: int):
     redis_client.ltrim("tarefas_ids", 0, 49)
 
     return{
-        "task.id": tarefa.id,
+        "task_id": tarefa.id,
         "message":"tarefa de soma enviada para execução"
     }
 
@@ -170,7 +170,7 @@ def calcular_fatorial(n: int):
     redis_client.ltrim("tarefas_ids", 0, 49)
 
     return{
-        "task.id": tarefa.id,
+        "task_id": tarefa.id,
         "message":"tarefa de fatorial enviada para execução"
     }
 
