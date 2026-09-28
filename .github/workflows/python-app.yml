@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: checkout do código
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
 
       - name: build da imagem docker
         run: docker build -t my-fastapi-app .
