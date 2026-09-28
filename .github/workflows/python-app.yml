@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout do código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Instalar Python
         uses: actions/setup-python@v6
@@ -31,6 +31,7 @@ jobs:
         run: poetry install --no-interaction --no-root
 
       - name: Rodar testes (placeholder)
-        run: poetry run pytest
+        run: |
+          poetry run pytest
 
       
